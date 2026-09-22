@@ -1,12 +1,15 @@
 
 const KEY='shushicho.v1.records';
 let records=JSON.parse(localStorage.getItem(KEY)||'[]'), range='year';
+const DEBT_KEY='shushicho.v1.debts', PAY_KEY='shushicho.v1.payments';
+let debts=JSON.parse(localStorage.getItem(DEBT_KEY)||'[]'), payments=JSON.parse(localStorage.getItem(PAY_KEY)||'[]');
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const yen=n=>(n<0?'-':'')+'¥'+Math.abs(Math.round(n)).toLocaleString('ja-JP');
 const net=r=>(+r.return||0)-(+r.invest||0);
 const cls=n=>n>0?'pos':n<0?'neg':'';
 const today=()=>new Date().toISOString().slice(0,10);
 function save(){localStorage.setItem(KEY,JSON.stringify(records));render()}
+function saveDebt(){localStorage.setItem(DEBT_KEY,JSON.stringify(debts));localStorage.setItem(PAY_KEY,JSON.stringify(payments));renderDebt()}
 function scope(kind=range){
  let now=new Date(), y=now.getFullYear(), m=String(now.getMonth()+1).padStart(2,'0');
  if(kind==='month')return records.filter(r=>r.date.startsWith(`${y}-${m}`));
@@ -28,7 +31,7 @@ function render(){
  $('#summary').innerHTML=
   stat('対象期間の収支',yen(x.n),`${s.length}件`,cls(x.n))+
   stat('総投資',yen(x.inv),'')+stat('総回収',yen(x.ret),`回収率 ${x.roi.toFixed(1)}%`)+stat('勝率',x.rate.toFixed(1)+'%',`${x.wins}勝 / ${s.length}回`);
- renderRecent();renderHistory();renderAnalysis();drawChart(s);updatePlaces();
+ renderRecent();renderHistory();renderAnalysis();drawChart(s);updatePlaces();renderDebt();
 }
 function renderRecent(){
  let a=[...records].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
@@ -74,5 +77,17 @@ $('#deleteBtn').onclick=()=>{let id=$('#editId').value;if(confirm('この記録�
 document.addEventListener('click',e=>{let el=e.target.closest('.row[data-id]');if(el){let r=records.find(x=>x.id===el.dataset.id);if(r)openEditor(r)}});
 $('#exportBtn').onclick=()=>{let blob=new Blob([JSON.stringify({app:'パチンコ・パチスロ収支帳',version:1,records},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='収支帳バックアップ-'+today()+'.json';a.click();URL.revokeObjectURL(a.href)};
 $('#importFile').onchange=async e=>{try{let j=JSON.parse(await e.target.files[0].text());if(!Array.isArray(j.records))throw 0;if(confirm(`${j.records.length}件の記録で現在のデータを置き換えますか？`)){records=j.records;save()}}catch{alert('バックアップファイルを読み込めませんでした。')}e.target.value=''};
+function renderDebt(){
+ let original=debts.reduce((s,d)=>s+(+d.amount||0),0), paid=payments.reduce((s,p)=>s+(+p.amount||0),0), balance=Math.max(0,original-paid), rate=original?Math.min(100,paid/original*100):0;
+ $('#debtBalance').textContent=yen(balance);$('#debtOriginal').textContent=yen(original);$('#debtPaid').textContent=yen(paid);
+ $('#debtBar').style.width=rate+'%';$('#debtRate').textContent=rate.toFixed(1)+'% 返済済み';
+ $('#debtList').innerHTML=debts.length?debts.map(d=>{let dp=payments.filter(p=>p.debtId===d.id).reduce((s,p)=>s+(+p.amount||0),0),bal=Math.max(0,d.amount-dp);return `<div class="row debtRow"><div><b>${d.name}</b><small>借入 ${yen(d.amount)} / 返済 ${yen(dp)}</small></div><div class="money"><span class="${bal?'neg':'pos'}">${yen(bal)}</span><button class="repayBtn" data-debt="${d.id}" ${bal?'':'disabled'}>${bal?'返済':'完済'}</button></div></div>`}).join(''):'<div class="empty">借金の登録はありません。</div>';
+ let ps=[...payments].sort((a,b)=>b.date.localeCompare(a.date));
+ $('#paymentList').innerHTML=ps.length?ps.map(p=>{let d=debts.find(x=>x.id===p.debtId);return `<div class="row"><div><b>${d?.name||'借入先'}</b><small>${p.date}　${p.memo||''}</small></div><div class="money pos">${yen(p.amount)}</div></div>`}).join(''):'<div class="empty">返済履歴はありません。</div>';
+}
+$('#addDebt').onclick=()=>{let name=$('#debtName').value.trim(),amount=+$('#debtAmount').value||0;if(!name||amount<=0){alert('借入先と借入残高を入力してください。');return}debts.push({id:String(Date.now()),name,amount});$('#debtName').value='';$('#debtAmount').value='';saveDebt()};
+document.addEventListener('click',e=>{let b=e.target.closest('.repayBtn');if(!b)return;let d=debts.find(x=>x.id===b.dataset.debt);if(!d)return;$('#paymentDebtId').value=d.id;$('#paymentDebtName').textContent=d.name;$('#paymentDate').value=today();$('#paymentAmount').value='';$('#paymentMemo').value='';$('#paymentEditor').showModal()});
+$('#paymentClose').onclick=()=>$('#paymentEditor').close();
+$('#paymentForm').onsubmit=e=>{e.preventDefault();let debtId=$('#paymentDebtId').value,amount=+$('#paymentAmount').value||0;if(amount<=0)return;let d=debts.find(x=>x.id===debtId),already=payments.filter(p=>p.debtId===debtId).reduce((s,p)=>s+(+p.amount||0),0),remaining=Math.max(0,(d?.amount||0)-already);if(amount>remaining&&!confirm('残高より多い返済額です。このまま記録しますか？'))return;payments.push({id:String(Date.now()),debtId,date:$('#paymentDate').value,amount,memo:$('#paymentMemo').value.trim()});saveDebt();$('#paymentEditor').close()};
 if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 render();
