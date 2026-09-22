@@ -89,5 +89,5 @@ $('#addDebt').onclick=()=>{let name=$('#debtName').value.trim(),amount=+$('#debt
 document.addEventListener('click',e=>{let b=e.target.closest('.repayBtn');if(!b)return;let d=debts.find(x=>x.id===b.dataset.debt);if(!d)return;$('#paymentDebtId').value=d.id;$('#paymentDebtName').textContent=d.name;$('#paymentDate').value=today();$('#paymentAmount').value='';$('#paymentMemo').value='';$('#paymentEditor').showModal()});
 $('#paymentClose').onclick=()=>$('#paymentEditor').close();
 $('#paymentForm').onsubmit=e=>{e.preventDefault();let debtId=$('#paymentDebtId').value,amount=+$('#paymentAmount').value||0;if(amount<=0)return;let d=debts.find(x=>x.id===debtId),already=payments.filter(p=>p.debtId===debtId).reduce((s,p)=>s+(+p.amount||0),0),remaining=Math.max(0,(d?.amount||0)-already);if(amount>remaining&&!confirm('残高より多い返済額です。このまま記録しますか？'))return;payments.push({id:String(Date.now()),debtId,date:$('#paymentDate').value,amount,memo:$('#paymentMemo').value.trim()});saveDebt();$('#paymentEditor').close()};
-if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
-render();
+if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js?v=3',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});}
+if(location.hash==='#debt'){const b=document.querySelector('nav [data-page="debt"]');if(b)b.click();else render();}else render();
