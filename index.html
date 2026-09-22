@@ -27,13 +27,24 @@
   <div class="card"><div class="cardTitle">店舗・競馬場別</div><div id="placeStats"></div></div>
   <div class="card"><div class="cardTitle">月別収支</div><div id="monthlyStats"></div></div>
 </section>
+<section id="debt" class="page">
+  <div class="hero card debtHero"><span>借金残高</span><strong id="debtBalance">¥0</strong><div class="mini"><div>借入総額<b id="debtOriginal">¥0</b></div><div>返済済み<b id="debtPaid">¥0</b></div></div></div>
+  <div class="card"><div class="cardTitle">返済状況</div><div class="debtProgress"><i id="debtBar"></i></div><div id="debtRate" class="debtRate">0% 返済済み</div></div>
+  <div class="card"><div class="cardTitle">借金を登録</div>
+    <label>借入先<input id="debtName" placeholder="例：カードローン"></label>
+    <label>借入残高<input id="debtAmount" type="number" inputmode="numeric" min="0" placeholder="300000"></label>
+    <button id="addDebt" class="save" type="button">借金を追加</button>
+  </div>
+  <div class="card"><div class="cardTitle">借入先一覧</div><div id="debtList"></div></div>
+  <div class="card"><div class="cardTitle">返済履歴</div><div id="paymentList"></div></div>
+</section>
 <section id="settings" class="page">
  <div class="card"><div class="cardTitle">データ管理</div><p>記録はこの端末に保存されます。機種変更前はバックアップしてください。</p>
  <button id="exportBtn" class="wide">バックアップを書き出す</button>
  <label class="wide file">バックアップを復元<input id="importFile" type="file" accept="application/json"></label></div>
 </section>
 </main>
-<nav><button data-page="home" class="on">⌂<span>ホーム</span></button><button data-page="history">▤<span>履歴</span></button><button id="addNav" class="plus">＋</button><button data-page="analysis">⌁<span>分析</span></button><button data-page="settings">⚙<span>設定</span></button></nav>
+<nav><button data-page="home" class="on">⌂<span>ホーム</span></button><button data-page="history">▤<span>履歴</span></button><button id="addNav" class="plus">＋</button><button data-page="analysis">⌁<span>分析</span></button><button data-page="debt">¥<span>借金返済</span></button><button data-page="settings">⚙<span>設定</span></button></nav>
 <dialog id="editor"><form id="form" method="dialog">
 <div class="modalHead"><h2 id="formTitle">収支を記録</h2><button type="button" id="close">×</button></div>
 <input type="hidden" id="editId">
@@ -45,6 +56,15 @@
 <div class="preview">今回の収支 <strong id="previewNet">¥0</strong></div>
 <label>メモ<textarea id="memo" rows="3" placeholder="台番号、買い目、気づいたことなど"></textarea></label>
 <button class="save" value="default">保存する</button><button type="button" id="deleteBtn" class="danger hidden">この記録を削除</button>
+</form></dialog>
+<dialog id="paymentEditor"><form id="paymentForm" method="dialog">
+<div class="modalHead"><h2>返済を記録</h2><button type="button" id="paymentClose">×</button></div>
+<input type="hidden" id="paymentDebtId">
+<div id="paymentDebtName" class="preview"></div>
+<label>返済日<input id="paymentDate" type="date" required></label>
+<label>返済額<input id="paymentAmount" type="number" inputmode="numeric" min="1" required></label>
+<label>メモ<textarea id="paymentMemo" rows="2" placeholder="任意"></textarea></label>
+<button class="save" value="default">返済を保存</button>
 </form></dialog>
 <script src="app.js"></script>
 </body></html>
